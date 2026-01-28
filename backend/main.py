@@ -40,8 +40,8 @@ def process_images_thread(task_id: str, saved_files: list, filename: str):
         task_status[task_id] = {"status": "failed", "error": str(e)}
 
 
-@app.get('/{name}', tags=['Home'])
-def home(req: Request, name: str):
+@app.get('/', tags=['Home'])
+def home(req: Request):
     return templates.TemplateResponse(request=req, name='home.html')
 
 
