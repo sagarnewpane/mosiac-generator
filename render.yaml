@@ -2,10 +2,13 @@ services:
   - type: web
     name: mosiac-webapp
     runtime: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: "3.14"
+        value: "3.13"
+      - key: PYTHONPATH
+        value: /opt/render/project/src
     autoDeploy: true
     plan: free
