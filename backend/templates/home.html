@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Generator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background: #fafafa;
+            color: #333;
+            line-height: 1.5;
+        }
+        h1 {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        p.subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        .upload-area:hover {
+            border-color: #888;
+        }
+        .upload-area.dragover {
+            border-color: #333;
+            background: #f5f5f5;
+        }
+        .upload-area input {
+            display: none;
+        }
+        .upload-area p {
+            margin: 0;
+            color: #666;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .file-item span {
+            font-size: 14px;
+            color: #444;
+        }
+        .file-item button {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 4px;
+        }
+        .file-item button:hover {
+            color: #c00;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #555;
+        }
+        .btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.processing {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+        }
+        .status.completed {
+            background: #d4edda;
+            border: 1px solid #28a745;
+        }
+        .status.failed {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result img {
+            max-width: 100%;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .result a {
+            display: inline-block;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>ASCII Generator</h1>
+    <p class="subtitle">Upload images to convert them to ASCII art</p>
+
+    <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <p>Click to select images or drag them here</p>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <button class="btn" id="uploadBtn" style="display: none;">Process Images</button>
+
+    <div class="status" id="status"></div>
+
+    <div class="result" id="result"></div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const status = document.getElementById('status');
+        const result = document.getElementById('result');
+
+        let selectedFiles = [];
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+
+        function handleFiles(files) {
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    selectedFiles.push(file);
+                }
+            }
+            renderFileList();
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <span>${file.name}</span>
+                    <button onclick="removeFile(${index})">×</button>
+                `;
+                fileList.appendChild(div);
+            });
+            uploadBtn.style.display = selectedFiles.length > 0 ? 'inline-block' : 'none';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('images', file);
+            });
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            status.className = 'status show processing';
+            status.textContent = 'Uploading images...';
+            result.innerHTML = '';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.task_id) {
+                    status.textContent = 'Processing images...';
+                    pollStatus(data.task_id);
+                }
+            } catch (err) {
+                status.className = 'status show failed';
+                status.textContent = 'Upload failed: ' + err.message;
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Process Images';
+            }
+        });
+
+        async function pollStatus(taskId) {
+            try {
+                const response = await fetch(`/status/${taskId}`);
+                const data = await response.json();
+
+                if (data.status === 'processing' || data.status === 'pending') {
+                    setTimeout(() => pollStatus(taskId), 1000);
+                } else if (data.status === 'completed') {
+                    status.className = 'status show completed';
+                    status.textContent = 'Done!';
+                    showResult(data.result);
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Process Images';
+                } else if (data.status === 'failed') {
+                    status.className = 'status show failed';
+                    status.textContent = 'Processing failed: ' + (data.error || 'Unknown error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Process Images';
+                }
+            } catch (err) {
+                status.className = 'status show failed';
+                status.textContent = 'Error checking status';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Process Images';
+            }
+        }
+
+        function showResult(resultData) {
+            result.innerHTML = '';
+            
+            if (Array.isArray(resultData)) {
+                resultData.forEach(url => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '20px';
+                    div.innerHTML = `
+                        <img src="${url}" alt="Processed image">
+                        <br><a href="${url}" download>Download</a>
+                    `;
+                    result.appendChild(div);
+                });
+            } else if (typeof resultData === 'string') {
+                result.innerHTML = `
+                    <img src="${resultData}" alt="Processed image">
+                    <br><a href="${resultData}" download>Download</a>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
