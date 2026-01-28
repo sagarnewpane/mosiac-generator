@@ -57,9 +57,23 @@ def average_color(img):
     return img_small.getpixel((0, 0))
 
 
+def crop_center_square(img, size=50):
+    """Crop image to square from center and resize."""
+    width, height = img.size
+    min_dim = min(width, height)
+    
+    left = (width - min_dim) // 2
+    top = (height - min_dim) // 2
+    right = left + min_dim
+    bottom = top + min_dim
+    
+    img = img.crop((left, top, right, bottom))
+    return img.resize((size, size), Image.LANCZOS)
+
+
 def process(path,outputPath,name,tile_library=chars):
 
-    tile_library = [Image.open(p).convert('RGB') for p in tile_library]
+    tile_library = [crop_center_square(Image.open(p).convert('RGB'), oneCharWidth) for p in tile_library]
     color_set = [average_color(tile) for tile in tile_library]
 
     image_path = path  

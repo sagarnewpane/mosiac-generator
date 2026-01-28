@@ -1,7 +1,10 @@
 # Mosaic Generator
 
 A web application that transforms images into photo mosaics using a library of tile images.
+
 https://mosiac-generator.onrender.com
+
+![mosiac image](mosiac.png)
 
 ## Features
 
